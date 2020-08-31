@@ -5,8 +5,9 @@ const config = require('../util/config')
 const firebase = require('firebase')
 firebase.initializeApp(config)
 
-const { validateSignupData, validateLoginData } = require('../util/validators')
+const { validateSignupData, validateLoginData, reduceUserDetails } = require('../util/validators')
 
+// User login
 exports.login = async (req,res) => {
   const user = {
     email: req.body.email,
@@ -29,6 +30,7 @@ exports.login = async (req,res) => {
   }
 }
 
+// User sign up
 exports.signup = async (req,res) => {
   const newUser = {
     email: req.body.email,
@@ -71,6 +73,41 @@ exports.signup = async (req,res) => {
   }
 }
 
+// Add user details
+exports.addUserDetails = async (req,res) => {
+  let userDetails = reduceUserDetails(req.body)
+
+  try {
+    await db.doc(`/users/${req.user.handle}`).update(userDetails)
+    return res.json({ message: 'Details added successfully'})
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: e.code })
+  }
+}
+
+// Get current user details
+exports.getCurrentUser =  async (req,res) => {
+  let userData = {}
+  try {
+    let doc = await db.doc(`/users/${req.user.handle}`).get()
+    if(doc.exists){
+      userData.credentials = doc.data()
+      let data = await db.collection('likes')
+        .where('userHandle', '=' , req.user.handle).get()
+
+      userData.likes = []
+      data.forEach(docu => userData.likes.push(docu.data()))
+      return res.json(userData)
+    }
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: e.code })
+  }
+    
+}
+
+// Upload image for user
 exports.uploadImage = (req,res) => {
   const BusBoy = require('busboy')
   const path = require('path')

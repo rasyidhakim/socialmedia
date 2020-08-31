@@ -1,3 +1,5 @@
+const { user } = require("firebase-functions/lib/providers/auth")
+
 const emailCheck = (email) => {
   const regEx = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
   return email.match(regEx) ? true : false
@@ -36,4 +38,18 @@ exports.validateLoginData = user => {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false
   }
+}
+
+exports.reduceUserDetails = data => {
+  let userDetails = {}
+
+  if(!emptyCheck(data.bio.trim())) userDetails.bio = data.bio
+  if(!emptyCheck(data.website.trim())){
+    data.website.trim().substring(0,4) !== 'http' 
+      ? userDetails.website = `http://${data.website.trim()}` 
+      : userDetails.website = data.website
+  }
+  if(!emptyCheck(data.location.trim())) userDetails.location = data.location
+
+  return userDetails
 }
