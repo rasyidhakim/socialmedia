@@ -15,9 +15,8 @@ module.exports = async (req,res,next) => {
       .where('userId', '==', req.user.uid)
       .limit(1)
       .get()
-    console.log(data)
     req.user.handle = data.docs[0].data().handle
-    console.log(data.docs[0].data())
+    req.user.imageUrl = data.docs[0].data().imageUrl
     next()
   } catch (e) {
     console.error('Error while verifying token ',e)
