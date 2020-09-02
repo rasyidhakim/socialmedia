@@ -69,7 +69,7 @@ exports.signup = async (req,res) => {
     if(e.code === 'auth/email-already-in-use')
       return res.status(400).json({ email: 'email already in use'  })
     else
-      return res.status(500).json({ error: e.code })
+      return res.status(500).json({ general: 'something\'s wrong. I can feel it (eminem)' })
   }
 }
 
