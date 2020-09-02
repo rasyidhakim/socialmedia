@@ -86,6 +86,35 @@ exports.addUserDetails = async (req,res) => {
   }
 }
 
+// Get user detail by handle
+exports.getUserDetails = async (req,res) => {
+  let userData = {}
+  try {
+    const doc = await db.doc(`/users/${req.params.handle}`).get()
+    if(doc.exists){
+      userData.user = doc.data()
+      const data = await db.collection('screams').where('userHandle','==',req.params.handle)
+        .orderBy('createdAt','desc').get()
+      userData.screams = []
+      data.forEach(el => {
+        userData.screams.push({
+          body: el.data().body,
+          createdAt: el.data().createdAt,
+          userHandle: el.data().userHandle,
+          userImage: el.data().userImage,
+          likeCount: el.data().likeCount,
+          commentCount: el.data().commentCount,
+          screamId: doc.id
+        })
+      })
+      return res.json(userData)
+    } else res.status(404).json({ error: 'user not found' })
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: e.code })
+  }
+}
+
 // Get current user details
 exports.getCurrentUser =  async (req,res) => {
   let userData = {}
@@ -94,17 +123,30 @@ exports.getCurrentUser =  async (req,res) => {
     if(doc.exists){
       userData.credentials = doc.data()
       let data = await db.collection('likes')
-        .where('userHandle', '=' , req.user.handle).get()
+        .where('userHandle', '==' , req.user.handle).get()
 
       userData.likes = []
       data.forEach(docu => userData.likes.push(docu.data()))
+      let recipientData = await db.collection('notifications').where('recipient','==', req.user.handle)
+        .orderBy('createdAt','desc').limit(10).get()
+      userData.notifications = []
+      recipientData.forEach( docu => {
+        userData.notifications.push({
+          recipient: docu.data().recipient,
+          sender: docu.data().sender,
+          createdAt: docu.data().createdAt,
+          screamId: docu.data().screamId,
+          type: docu.data().type,
+          read: docu.data().read,
+          notificationId: docu.id,
+        })
+      })
       return res.json(userData)
     }
   } catch (e) {
     console.error(e)
     return res.status(500).json({ error: e.code })
   }
-    
 }
 
 // Upload image for user
@@ -151,4 +193,19 @@ exports.uploadImage = (req,res) => {
     }
   })
   busboy.end(req.rawBody)
+}
+
+exports.markNotificationRead = async (req,res) => {
+  let batch = db.batch()
+  req.body.forEach(notificationId => {
+    const notification = db.doc(`/notifications/${notificationId}`)
+    batch.update(notification,{ read: true })
+  })
+  try {
+    await batch.commit()
+    return res.json({ message: 'Notifications marked read'})
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: err.code })
+  }
 }
