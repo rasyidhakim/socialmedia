@@ -77,47 +77,40 @@ exports.createNotificationOnComment = functions.firestore
     }
   })
 
-  exports.onUserImageChange = functions.firestore
-    .document('users/{userId}').onUpdate( async change => {
-      const before = change.before.data()
-      const after = change.after.data()
-      console.log(before)
-      console.log(after)
-      if(before.imageUrl !== after.imageUrl){
-        console.log('image has changed')
-        let batch = db.batch()
-        const data = await db.collection('screams').where('userHandle','==', 
-          before.handle).get()
-        data.forEach(doc => {
-          const scream = db.doc(`/screams/${doc.id}`)
-          batch.update(scream, { userImage: after.imageUrl })
-        })
-        await batch.commit()
-      } else console.log('image has not changed')
-    })
+exports.onUserImageChange = functions.firestore
+  .document('users/{userId}').onUpdate( async change => {
+    const before = change.before.data()
+    const after = change.after.data()
+    console.log(before)
+    console.log(after)
+    if(before.imageUrl !== after.imageUrl){
+      console.log('image has changed')
+      let batch = db.batch()
+      const data = await db.collection('screams').where('userHandle','==', 
+        before.handle).get()
+      data.forEach(doc => {
+        const scream = db.doc(`/screams/${doc.id}`)
+        batch.update(scream, { userImage: after.imageUrl })
+      })
+      await batch.commit()
+    } else console.log('image has not changed')
+  })
 
-    exports.onScreamDelete = functions.firestore
-    .document('screams/{screamId}').onDelete( async (snapshot, context) => {
-      const screamId = context.params.screamId
-      const batch = db.batch()
-      try {
-        const commentsData = await db.collection('comments')
-        .where('screamId','==', screamId).get()
-        commentsData.forEach(doc => {
-          batch.delete(db.doc(`/comments/${doc.id}`))
-        })
-        const likesData = await db.collection('likes')
-        .where('screamId','==', screamId).get()
-        likesData.forEach(doc => {
-          batch.delete(db.doc(`/likes/${doc.id}`))
-        })
-        const notificationData = await db.collection('notifications')
-        .where('screamId','==', screamId).get()
-        notificationData.forEach(doc => {
-          batch.delete(db.doc(`/notifications/${doc.id}`))
-        })
-        await batch.commit()
-      } catch (err) {
-        console.error(err)
-      }
-    })
+exports.onScreamDelete = functions.firestore
+.document('screams/{screamId}').onDelete( async (snapshot, context) => {
+  const screamId = context.params.screamId
+  const batch = db.batch()
+  try {
+    const collection = ['comments','likes','notifications']
+    for (let index = 0; index < collection.length; index++) {
+      const data = await db.collection(collection[index])
+        .where('screamId','==',screamId).get()
+      data.forEach(doc => {
+        batch.delete(db.doc(`/${collection[index]}/${doc.id}`))
+      })
+    }
+    await batch.commit()
+  } catch (err) {
+    console.error(err)
+  }
+})

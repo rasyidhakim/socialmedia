@@ -25,8 +25,10 @@ exports.login = async (req,res) => {
   } catch (e) {
     console.error(e)
     if(e.code == 'auth/wrong-password')
-      return res.status(403).json({ general : 'Wrong credential, please try again' })
-    else return res.status(500).json({ error: e.code })
+      return res.status(403).json({ error : 'Wrong credential, please try again' })
+    else if(e.code == 'auth/user-not-found')
+      return res.status(403).json({ error : 'Email is not registered. Sign up first' })
+    else return res.status(500).json({ error : e.code })
   }
 }
 
