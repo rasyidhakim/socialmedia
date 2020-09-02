@@ -101,12 +101,12 @@ exports.onScreamDelete = functions.firestore
   const screamId = context.params.screamId
   const batch = db.batch()
   try {
-    const collection = ['comments','likes','notifications']
-    for (let index = 0; index < collection.length; index++) {
-      const data = await db.collection(collection[index])
+    const collections = ['comments','likes','notifications']
+    for (const col of collections) {
+      const data = await db.collection(col)
         .where('screamId','==',screamId).get()
       data.forEach(doc => {
-        batch.delete(db.doc(`/${collection[index]}/${doc.id}`))
+        batch.delete(db.doc(`/${col}/${doc.id}`))
       })
     }
     await batch.commit()
