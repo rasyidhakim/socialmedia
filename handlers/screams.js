@@ -35,6 +35,10 @@ exports.postOneScream = async(req,res) => {
     commentCount: 0,
     createdAt: new Date().toISOString()
   }
+  
+  if((req.body.body).trim() === '')
+    return res.status(400).json({ error: 'must not be empty' })
+  
   try {
     let data = await db.collection('screams').add(newScream)
     const resScream = newScream
